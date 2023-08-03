@@ -1,0 +1,1 @@
+/home/zack/.config/emacs/elpaca/repos/magit/docs/AUTHORS.md
