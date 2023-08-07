@@ -18,6 +18,7 @@
   - [[#buffer-move][Buffer Move]]
   - [[#rainbow-mode][Rainbow Mode]]
 - [[#org-mode][ORG MODE]]
+  - [[#basic-org-stuff][Basic Org Stuff]]
   - [[#org-tempo][Org Tempo]]
   - [[#enabling-table-of-contents][Enabling Table of Contents]]
   - [[#org-roam][Org Roam]]
@@ -364,6 +365,23 @@ one, an error is signaled."
 #+end_src
 
 * ORG MODE
+** Basic Org Stuff
+#+begin_src emacs-lisp
+  (require 'org
+    (setq org-agenda-files
+      '("~/org/tasks.org")))
+
+  (setq org-agenda-start-with-log-mode t)
+  (setq org-log-done 'time)
+  (setq org-log-into-drawer t)
+
+  (setq org-refile-targets
+    '(("archive.org" :maxlevel . 1)
+      ("tasks.org" :maxlevel . 1)))
+
+  ;; Saves Org buffers after refiling
+  (advice-add 'org-refile :after 'org-save-all-org-buffers)
+#+end_src
 
 ** Org Tempo
 #+begin_src emacs-lisp
@@ -412,7 +430,6 @@ one, an error is signaled."
 #+end_src
 
 * GUI TWEAKS
-
 ** Disables Menubar and Scrollbar
 #+begin_src emacs-lisp
   (menu-bar-mode -1) ;; Disables menubar
@@ -421,7 +438,6 @@ one, an error is signaled."
   (set-fringe-mode -1) 
   (setq inhibit-startup-message t) ;; Disables the startup message
 #+end_src
-
 ** Displays Line Numbers and Truncated Lines
 #+begin_src emacs-lisp
   (global-display-line-numbers-mode 1)
@@ -441,7 +457,6 @@ one, an error is signaled."
 #+end_src
 
 * IVY
-
 #+begin_src emacs-lisp
    (use-package counsel
      :after ivy

@@ -282,6 +282,21 @@ one, an error is signaled."
 (use-package rainbow-mode
   :hook org-mode prog-mode)
 
+(require 'org
+  (setq org-agenda-files
+    '("~/org/tasks.org")))
+
+(setq org-agenda-start-with-log-mode t)
+(setq org-log-done 'time)
+(setq org-log-into-drawer t)
+
+(setq org-refile-targets
+  '(("archive.org" :maxlevel . 1)
+    ("tasks.org" :maxlevel . 1)))
+
+;; Saves Org buffers after refiling
+(advice-add 'org-refile :after 'org-save-all-org-buffers)
+
 (require 'org-tempo)
 
 (use-package toc-org
@@ -449,10 +464,12 @@ one, an error is signaled."
   :config (counsel-projectile-mode))
 
 (use-package magit
-  :ensure t
-  :after evil
-  :init
-  (evil-collection-init))
+    :ensure t
+    :after evil
+    :init
+    (evil-collection-init))
 
-(use-package forge)
-;; Need to authenicate throught GitHub
+  (use-package forge)
+  ;; Need to authenicate throught GitHub
+  
+(use-package sqlite3)

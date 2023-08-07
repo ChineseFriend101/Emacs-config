@@ -1,1 +1,1 @@
-nil
+("~/.config/emacs/")
