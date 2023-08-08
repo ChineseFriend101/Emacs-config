@@ -473,8 +473,10 @@ one, an error is signaled."
   ;; Need to authenicate throught GitHub
   
 (use-package sqlite3)
-<<<<<<< HEAD
 
-(setq backup-directory-alist '(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
-=======
->>>>>>> 74b5619 (Added some org function)
+;;  (setq backup-directory-alist '(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
+
+;; Replaces the "auto-save" file in emacs folder
+;; (setq auto-save-list-file-prefix (expand-file-name "tmp/autosaves/sessions/" user-emacs-directory)
+
+ ;; (setq auto-save-file-name-transforms '((".*" ,(expand-file-name "tmp/autosaves/" user-emacs-directory) t)))
