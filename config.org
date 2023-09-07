@@ -1,11 +1,14 @@
 #+TITLE:Zacks Emacs Config
+:PROPERTIES:
 #+AUTHOR: Zachary DeGidio
-#+DESCRIPTION: Zacks personal Emacs config.
-#+STARTUP: showeverything
-#+OPTIONS: toc:2
+#+PROPERTY: header-args :tangle init.el
+#+STARTUP: overview
+:END:
 * TABLE OF CONTENTS :toc:
-- [[#elpaca--package-manager][Elpaca  Package Manager]]
+- [[#package-manager][Package Manager]]
 - [[#evil-mode][EVIL Mode]]
+  - [[#main-evil][Main EVIL]]
+  - [[#evil-org][EVIL Org]]
 - [[#key-bindings][KEY BINDINGS]]
   - [[#general-keybindings][General Keybindings]]
   - [[#hydra][Hydra]]
@@ -17,6 +20,7 @@
   - [[#zooming-inout][Zooming In/Out]]
   - [[#buffer-move][Buffer Move]]
   - [[#rainbow-mode][Rainbow Mode]]
+  - [[#dashboard][Dashboard]]
 - [[#org-mode][ORG MODE]]
   - [[#basic-org-stuff][Basic Org Stuff]]
   - [[#org-tempo][Org Tempo]]
@@ -35,83 +39,20 @@
   - [[#vterm-toggle][Vterm-toggle]]
 - [[#sudo-edit][SUDO EDIT]]
 - [[#helpful][HELPFUL]]
-- [[#projectile][Projectile]]
-- [[#magit][MAGIT]]
+- [[#coding][CODING]]
+  - [[#smartparens][Smartparens]]
+  - [[#magit][Magit]]
+  - [[#projectile][Projectile]]
 - [[#version-control][VERSION CONTROL]]
   - [[#backups][Backups]]
   - [[#autosaves][Autosaves]]
 
-* Elpaca  Package Manager
+* Package Manager
 #+begin_src emacs-lisp
-
-      (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-      (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-      (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
-      (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                                    :ref nil
-                                    :files (:defaults (:exclude "extensions"))
-                                    :build (:not elpaca--activate-package)))
-      (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
-             (build (expand-file-name "elpaca/" elpaca-builds-directory))
-             (order (cdr elpaca-order))
-             (default-directory repo))
-        (add-to-list 'load-path (if (file-exists-p build) build repo))
-        (unless (file-exists-p repo)
-          (make-directory repo t)
-          (when (< emacs-major-version 28) (require 'subr-x))
-          (condition-case-unless-debug err
-              (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-                       ((zerop (call-process "git" nil buffer t "clone"
-                                             (plist-get order :repo) repo)))
-                       ((zerop (call-process "git" nil buffer t "checkout"
-                                             (or (plist-get order :ref) "--"))))
-                       (emacs (concat invocation-directory invocation-name))
-                       ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-                                             "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                       ((require 'elpaca))
-                       ((elpaca-generate-autoloads "elpaca" repo)))
-                  (kill-buffer buffer)
-                (error "%s" (with-current-buffer buffer (buffer-string))))
-            ((error) (warn "%s" err) (delete-directory repo 'recursive))))
-        (unless (require 'elpaca-autoloads nil t)
-          (require 'elpaca)
-          (elpaca-generate-autoloads "elpaca" repo)
-          (load "./elpaca-autoloads")))
-      (add-hook 'after-init-hook #'elpaca-process-queues)
-      (elpaca `(,@elpaca-order))
-
-  ;; Install use-package support
-  (elpaca elpaca-use-package
-    ;; Enable :elpaca use-package keyword.
-    (elpaca-use-package-mode)
-    ;; Assume :elpaca t unless otherwise specified.
-    (setq elpaca-use-package-by-default t))
-
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/")))
-
-  ;; Block until current queue processed.
-  (elpaca-wait)
-
-  ;;When installing a package which modifies a form used at the top-level
-  ;;(e.g. a package which adds a use-package key word),
-  ;;use `elpaca-wait' to block until that package has been installed/configured.
-  ;;For example:
-  ;;(use-package general :demand t)
-  ;;(elpaca-wait)
-
-      ;;Turns off elpaca-use-package-mode current declartion
-      ;;Note this will cause the declaration to be interpreted immediately (not deferred).
-      ;;Useful for configuring built-in emacs features.
-      (use-package emacs :elpaca nil :config (setq ring-bell-function #'ignore))
-
-      ;; Don't install anything. Defer execution of BODY
-      ;;(elpaca nil (message "deferred"))
-  
+  (require 'elpaca "~/.config/emacs/elpaca.el")
 #+end_src
-
 * EVIL Mode
+** Main EVIL
 #+begin_src emacs-lisp
       ;; Expands to: (elpaca evil (use-package evil :demand t))
   (use-package evil
@@ -133,86 +74,106 @@
   (use-package evil-tutor)
 
 #+end_src
+** EVIL Org
+#+begin_src emacs-lisp
+(use-package evil-org
+  :diminish evil-org-mode
+  :after org
+  :config
+  (add-hook 'org-mode-hook 'evil-org-mode)
+  (add-hook 'evil-org-mode-hook
+            (lambda () (evil-org-set-key-theme))))
+
+  ;;(require 'evil-org-agenda)
+  ;;(evil-org-agenda-set-keys)
+#+end_src
 
 * KEY BINDINGS
 ** General Keybindings
-
 #+begin_src emacs-lisp
 
-          (use-package general
-            :config
-            (general-evil-setup)
+  (use-package general
+    :config
+    (general-evil-setup)
 
-            ;; set up 'spc' as the global leader key
-            (general-create-definer zd/leader-keys
-              :states '(normal insert visual emacs)
-              :keymaps 'override
-              :prefix "SPC" ;; set leader
-              :global-prefix "C-SPC") ;; access leader in insert mode
+  ;; set up 'spc' as the global leader key
+  (general-create-definer zd/leader-keys
+    :states '(normal insert visual emacs)
+    :keymaps 'override
+    :prefix "SPC" ;; set leader
+    :global-prefix "C-SPC") ;; access leader in insert mode
 
-        (zd/leader-keys
-            "f" '(:ignore t :wk "Find")
-            "f f" '(counsel-find-file :wk "Find file")
-            "f c" '((lambda () (interactive) (find-file "~/.config/emacs/config.org")) :wk "Edit emacs config")
-            "f r" '(counsel-recentf :wk "Find recent files")
-            "TAB TAB" '(comment-line :wk "Comment lines"))
+  (zd/leader-keys
+    "f" '(:ignore t :wk "Find")
+    "f f" '(counsel-find-file :wk "Find file")
+    "f c" '((lambda () (interactive) (find-file "~/.config/emacs/config.org")) :wk "Edit emacs config")
+    "f r" '(counsel-recentf :wk "Find recent files"))
 
-            (zd/leader-keys
-              "b" '(:ignore t :wk "Buffer")
-              "b b" '(switch-to-buffer :wk "Switch buffer")
-              "b k" '(kill-this-buffer :wk "Kill this buffer")
-              "b n" '(next-buffer :wk "Next buffer")
-              "b p" '(previous-buffer :wk "Previous buffer")
-              "b r" '(revert-buffer :wk "Reload buffer")
-              "b i" '(counsel-ibuffer :wk "Ibuffer"))
+  (zd/leader-keys
+    "b" '(:ignore t :wk "Buffer")
+    "b b" '(switch-to-buffer :wk "Switch buffer")
+    "b k" '(kill-this-buffer :wk "Kill this buffer")
+    "b n" '(next-buffer :wk "Next buffer")
+    "b p" '(previous-buffer :wk "Previous buffer")
+    "b r" '(revert-buffer :wk "Reload buffer")
+    "b i" '(counsel-ibuffer :wk "Ibuffer"))
 
-          (zd/leader-keys
-            "e" '(:ignore t :wk "Eval")    
-            "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
-            "e d" '(eval-defun :wk "Evaluate defun containing or after point")
-            "e e" '(eval-expression :wk "Evaluate an elisp expression")
-            "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
-            "e r" '(eval-region :wk "Evaluate elisp in region"))
-
-      (zd/leader-keys
-          "E" '(:ignore t :wk "Eshell")
-          "E h" '(counsel-esh-history :wk "Eshell history")
-          "E s" '(eshell :wk "Eshell"))
-
-      (zd/leader-keys
-          "h" '(:ignore t :wk "Help")
-          "h f" '(describe-function :wk "Describe function")
-          "h v" '(describe-variable :wk "Describe variable"))
-
-          ;; Makes ESC quit prompts
-          (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
-
-
-     (zd/leader-keys
-      "t" '(:ignore t :wk "Toggle")
-      "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
-      "t t" '(visual-line-mode :wk "Toggle truncated lines")
-      "t v" '(vterm-toggle :wk "Toggle vterm"))
+  (zd/leader-keys
+    "o" '(:ignore t :wk "Org")
+    "o a" '(org-agenda :wk "Org agenda")
+    "o t" '((lambda () (interactive) (find-file "~/org/tasks.org")) :wk "Org Tasks")
+    "o r i" '(org-roam-node-insert :wk "Org Roam insert")
+    "o r f" '(org-roam-node-find :wk "Org Roam find")
+    "o r b" '(org-roam-buffer-toggle :wk "Org Roam buffer")
+    "o r u" '(org-roam-ui-open :wk "Org Roam UI"))
 
    (zd/leader-keys
-      "w" '(:ignore t :wk "Windows")
-      ;; Window splits
-      "w c" '(evil-window-delete :wk "Close window")
-      "w n" '(evil-window-new :wk "New window")
-      "w s" '(evil-window-split :wk "Horizontal split window")
-      "w v" '(evil-window-vsplit :wk "Vertical split window")
-      ;; Window motions
-      "w h" '(evil-window-left :wk "Window left")
-      "w j" '(evil-window-down :wk "Window down")
-      "w k" '(evil-window-up :wk "Window up")
-      "w l" '(evil-window-right :wk "Window right")
-      "w w" '(evil-window-next :wk "Go to next window")
-      ;; Move Windows
-      "w H" '(buf-move-left :wk "Buffer move left")
-      "w J" '(buf-move-down :wk "Buffer move down")
-      "w K" '(buf-move-up :wk "Buffer move up")
-      "w L" '(buf-move-right :wk "Buffer move right"))
-  )
+     "e" '(:ignore t :wk "Eval")    
+     "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
+     "e d" '(eval-defun :wk "Evaluate defun containing or after point")
+     "e e" '(eval-expression :wk "Evaluate an elisp expression")
+     "e l" '(eval-last-sexp :wk "Evaluate elisp expression before point")
+     "e r" '(eval-region :wk "Evaluate elisp in region"))
+
+   (zd/leader-keys
+     "E" '(:ignore t :wk "Eshell")
+     "E h" '(counsel-esh-history :wk "Eshell history")
+     "E s" '(eshell :wk "Eshell"))
+
+   (zd/leader-keys
+     "h" '(:ignore t :wk "Help")
+     "h f" '(describe-function :wk "Describe function")
+     "h v" '(describe-variable :wk "Describe variable"))
+
+     ;; Makes ESC quit prompts
+     (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+
+
+   (zd/leader-keys
+     "t" '(:ignore t :wk "Toggle")
+     "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
+     "t t" '(visual-line-mode :wk "Toggle truncated lines")
+     "t v" '(vterm-toggle :wk "Toggle vterm"))
+
+   (zd/leader-keys
+     "w" '(:ignore t :wk "Windows")
+     ;; Window splits
+     "w c" '(evil-window-delete :wk "Close window")
+     "w n" '(evil-window-new :wk "New window")
+     "w s" '(evil-window-split :wk "Horizontal split window")
+     "w v" '(evil-window-vsplit :wk "Vertical split window")
+     ;; Window motions
+     "w h" '(evil-window-left :wk "Window left")
+     "w j" '(evil-window-down :wk "Window down")
+     "w k" '(evil-window-up :wk "Window up")
+     "w l" '(evil-window-right :wk "Window right")
+     "w w" '(evil-window-next :wk "Go to next window")
+     ;; Move Windows
+     "w H" '(buf-move-left :wk "Buffer move left")
+     "w J" '(buf-move-down :wk "Buffer move down")
+     "w K" '(buf-move-up :wk "Buffer move up")
+     "w L" '(buf-move-right :wk "Buffer move right"))
+    )
 
 #+end_src
 
@@ -258,11 +219,7 @@
   ;; This sets the defaoult font on all graphical frames created after restarting Emacs
   ;; Does the same as 'set-face-attribute default' above
   ;;but fonts on emacsclient don't work without this
-  (add-to-list 'default-frame-alist '(font . "JetBrains Mono-11"))
-
-  ;; Just line spacing
-  (setq-default line-spacing 0.12)
-
+  (add-to-list 'default-frame-alist '(font . "JetBrains Mono-11")) ;; Just line spacing (setq-default line-spacing 0.12) #+end_src
 #+end_src
 
 ** All The Icons
@@ -278,7 +235,7 @@
 ** Themes
 #+begin_src emacs-lisp
   (use-package doom-themes
-    :init (load-theme 'doom-palenight t))
+    :init (load-theme 'doom-gruvbox t))
 #+end_src
 
 ** Zooming In/Out
@@ -367,13 +324,18 @@ one, an error is signaled."
     :hook org-mode prog-mode)
 #+end_src
 
+** Dashboard
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :ensure t
+    :config
+    (dashboard-setup-startup-hook)
+  (setq dashboard-icon-type 'all-the-icons)) ;; use `all-the-icons' package
+#+end_src
 * ORG MODE
 ** Basic Org Stuff
 #+begin_src emacs-lisp
-  (require 'org
-    (setq org-agenda-files
-      '("~/org/tasks.org")))
-
+  (setq org-agenda-files '("~/org/tasks.org"))
   (setq org-agenda-start-with-log-mode t)
   (setq org-log-done 'time)
   (setq org-log-into-drawer t)
@@ -404,9 +366,6 @@ one, an error is signaled."
     :ensure t
     :custom
     (org-roam-directory "~/org/RoamNotes")
-    :bind (("C-c n l" . org-roam-buffer-toggle)
-           ("C-c n f" . org-roam-node-find)
-           ("C-c n i" . org-roam-node-insert))
     :config
     (org-roam-setup))
   
@@ -508,7 +467,6 @@ one, an error is signaled."
 #+end_src
 
 * SHELLS AND TERMINALS
-
 ** Eshell
 #+begin_src emacs-lisp
 (use-package eshell-syntax-highlighting
@@ -580,7 +538,67 @@ one, an error is signaled."
     ([remap describe-key] . helpful-key))
 #+end_src
 
-* Projectile
+* CODING
+** Smartparens
+#+begin_src emacs-lisp
+(use-package smartparens
+  :diminish smartparens-mode
+  :defer 1
+  :config
+  ;; Load default smartparens rules for various languages
+  (require 'smartparens-config)
+  (setq sp-max-prefix-length 25)
+  (setq sp-max-pair-length 4)
+  (setq sp-highlight-pair-overlay nil
+        sp-highlight-wrap-overlay nil
+        sp-highlight-wrap-tag-overlay nil)
+
+  (with-eval-after-load 'evil
+    (setq sp-show-pair-from-inside t)
+    (setq sp-cancel-autoskip-on-backward-movement nil)
+    (setq sp-pair-overlay-keymap (make-sparse-keymap)))
+
+  (let ((unless-list '(sp-point-before-word-p
+                       sp-point-after-word-p
+                       sp-point-before-same-p)))
+    (sp-pair "'"  nil :unless unless-list)
+    (sp-pair "\"" nil :unless unless-list))
+
+  ;; In lisps ( should open a new form if before another parenthesis
+  (sp-local-pair sp-lisp-modes "(" ")" :unless '(:rem sp-point-before-same-p))
+
+  ;; Don't do square-bracket space-expansion where it doesn't make sense to
+  (sp-local-pair '(emacs-lisp-mode org-mode markdown-mode gfm-mode)
+                 "[" nil :post-handlers '(:rem ("| " "SPC")))
+
+
+  (dolist (brace '("(" "{" "["))
+    (sp-pair brace nil
+             :post-handlers '(("||\n[i]" "RET") ("| " "SPC"))
+             ;; Don't autopair opening braces if before a word character or
+             ;; other opening brace. The rationale: it interferes with manual
+             ;; balancing of braces, and is odd form to have s-exps with no
+             ;; whitespace in between, e.g. ()()(). Insert whitespace if
+             ;; genuinely want to start a new form in the middle of a word.
+             :unless '(sp-point-before-word-p sp-point-before-same-p)))
+  (smartparens-global-mode t))
+#+end_src
+
+** Magit
+#+begin_src emacs-lisp
+  (use-package magit
+    :ensure t
+    :after evil
+    :init
+    (evil-collection-init))
+
+  (use-package forge)
+  ;; Need to authenicate throught GitHub
+  
+(use-package sqlite3)
+
+#+end_src
+** Projectile
 #+begin_src emacs-lisp
   (use-package projectile
       :diminish projectile-mode
@@ -597,31 +615,14 @@ one, an error is signaled."
     :config (counsel-projectile-mode))
 #+end_src
 
-* MAGIT
-#+begin_src emacs-lisp
-  (use-package magit
-    :ensure t
-    :after evil
-    :init
-    (evil-collection-init))
-
-  (use-package forge)
-  ;; Need to authenicate throught GitHub
-  
-(use-package sqlite3)
-
-#+end_src
-
 * VERSION CONTROL
-
 ** Backups
 #+begin_src emacs-lisp
-;;  (setq backup-directory-alist '(("." . ,(expand-file-name "tmp/backups/" user-emacs-directory))))
+;;(setq backup-directory-alist '(("." . ,(exan-file-name "tmp/backups/" user-emacs-directory))))
 #+end_src
 ** Autosaves
 #+begin_src emacs-lisp
-  ;; Replaces the "auto-save" file in emacs folder
- ;; (setq auto-save-list-file-prefix (expand-file-name "tmp/autosaves/sessions/" user-emacs-directory)
+;;(setq auto-save-list-file-prefix (expand-file-name "tmp/autosaves/sessions/" user-emacs-directory))
 
-  ;; (setq auto-save-file-name-transforms '((".*" ,(expand-file-name "tmp/autosaves/" user-emacs-directory) t)))
+;;(setq auto-save-file-name-transforms (("." ,(expand-file-name "tmp/autosaves/" user-emacs-directory) t)))
 #+end_src
