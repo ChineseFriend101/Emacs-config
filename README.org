@@ -1,0 +1,3 @@
+#+TITLE: Zack's Emacs Config
+
+Hello, this the Emacs config that I use on my Linux laptop and Windows desktop :)
