@@ -1,1 +1,0 @@
-/home/zack/.config/emacs/elpaca/repos/counsel-projectile/counsel-projectile.el

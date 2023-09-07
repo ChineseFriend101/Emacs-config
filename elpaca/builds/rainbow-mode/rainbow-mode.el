@@ -1,1 +1,0 @@
-/home/zack/.config/emacs/elpaca/repos/rainbow-mode/rainbow-mode.el
